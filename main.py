@@ -15,6 +15,9 @@ def chooseCave():
 
     return cave
 
+def new_def():
+	...
+
 def checkCave(chosenCave):
     print('Вы приближаетесь к пещере...')
     time.sleep(2)

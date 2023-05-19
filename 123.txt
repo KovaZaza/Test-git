@@ -1,0 +1,196 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+
+namespace Aquarium
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            AquariumManager aquarium = new AquariumManager();
+            aquarium.Start();
+        }
+    }
+
+    class AquariumManager
+    {
+        private const char CommandAddFist = '1';
+        private const char CommandRemoveFirstDeadFish = '2';
+        private const char CommandExit = '3';
+        private const int DelayOfGame = 100;
+
+        private Aquarium _aquarium;
+
+        public void Start()
+        {
+            int aquariumCapacity = 10;
+            _aquarium = new Aquarium(aquariumCapacity);
+
+            bool isWork = true;
+
+            while (isWork)
+            {
+                Console.Clear();
+                _aquarium.ShowFishInfo();
+                ShowMenu();
+
+                if (Console.KeyAvailable)
+                {
+                    var userInput = Console.ReadKey(intercept:true).KeyChar;
+
+                    switch (userInput)
+                    {
+                        case CommandAddFist:
+                            _aquarium.AddFish();
+                            break;
+                        case CommandRemoveFirstDeadFish:
+                            _aquarium.RemoveFirstDeadFish();
+                            break;
+                        case CommandExit:
+                            isWork = false;
+                            break;
+                    }
+                }
+
+                Thread.Sleep(DelayOfGame);
+                _aquarium.AgingAllFish();
+            }
+        }
+
+        private void ShowMenu()
+        {
+            Console.WriteLine($"\n[{CommandAddFist}] - Добавить новую рыбу\n" +
+                              $"[{CommandRemoveFirstDeadFish}] - Убрать первую мертвую рыбу\n" +
+                              $"[{CommandExit}] - Выход\n");
+        }
+    }
+
+    class Aquarium
+    {
+        private readonly List<Fish> _fish;
+
+        private int _maxCountFish;
+
+        public Aquarium(int maxCountFish)
+        {
+            _fish = new List<Fish>();
+            _maxCountFish = maxCountFish;
+        }
+
+        private int _currentCountFish => _fish.Count;
+
+        public void AddFish()
+        {
+            if (_currentCountFish + 1 <= _maxCountFish)
+            {
+                Fish newFish = new Fish();
+                _fish.Add(newFish);
+                Console.WriteLine("Новая рыба добавлена!");
+            }
+            else
+            {
+                Console.WriteLine($"Аквариум полностью заполнен! [{_maxCountFish}/{_currentCountFish}]");
+            }
+        }
+
+        public void RemoveFirstDeadFish()
+        {
+            if (_currentCountFish == 0)
+                Console.WriteLine("Аквариум пуст, удалять нечего!");
+            else if (TryRemoveFirstDeadFish())
+                Console.WriteLine("Мертвая рыба извлечена!");
+            else
+                Console.WriteLine("В аквариуме нет ни одной мертвой рыбы!");
+        }
+
+        public void ShowFishInfo()
+        {
+            if (_currentCountFish == 0)
+                Console.WriteLine("Аквариум пуст!");
+            else
+                for (int i = 0; i < _fish.Count; i++)
+                    Console.WriteLine($"{i + 1}) {_fish[i].GetInfo()}");
+
+            // пример через  Enumerate   
+            // foreach ((int index, Fish item) in _fish.Enumerate())
+            //     Console.WriteLine($"{index+1}) {item.GetInfo()}");
+        }
+
+        public void AgingAllFish()
+        {
+            foreach (var fish in _fish)
+                fish.Aging();
+        }
+
+        private bool TryRemoveFirstDeadFish()
+        {
+            foreach (var fish in _fish)
+            {
+                if (fish.IsAlive == false)
+                {
+                    _fish.Remove(fish);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    class Fish
+    {
+        private const int VisualDelay = 10;
+
+        private int _maxAge;
+
+        public Fish()
+        {
+            int minAge = 0;
+            CurrentAge = minAge;
+            _maxAge = GetRandomMaxAge();
+        }
+
+        public bool IsAlive => CurrentAge < _maxAge;
+        public int CurrentAge { get; private set; }
+
+        public void Aging()
+        {
+            if (CurrentAge + 1 <= _maxAge)
+                CurrentAge++;
+        }
+
+        public string GetInfo()
+        {
+            string massage = string.Empty;
+            string hpBar = $"Возраст : [{_maxAge / VisualDelay}/{CurrentAge / VisualDelay}]";
+
+            if (IsAlive)
+                massage = $"Плавает нормально. {hpBar}";
+            else
+                massage = $"Плавает брюхом вверх. {hpBar}";
+
+            return $"Рыба {massage}";
+        }
+
+        private int GetRandomMaxAge()
+        {
+            int maxRandomAge = 1000;
+            int minRandomAge = 300;
+
+            Random random = new Random();
+            int randomNumber = random.Next(minRandomAge, maxRandomAge);
+
+            return RoundUpToTens(randomNumber);
+        }
+
+        private int RoundUpToTens(int value) => value / 10 * 10;
+    }
+
+    public static class Extensions
+    {
+        public static IEnumerable<(int, T)> Enumerate<T>(this IEnumerable<T> array) =>
+            array.Select((item, index) => (index, item));
+    }
+}
